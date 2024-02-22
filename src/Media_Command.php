@@ -301,6 +301,37 @@ class Media_Command extends WP_CLI_Command {
 				Utils\wp_clear_object_cache();
 			}
 
+			if ( '-' === $file ) {
+				$content = file_get_contents( 'php://stdin' );
+
+				$unique_name = wp_generate_uuid4();
+				$unique_name = str_replace( '-', '', $unique_name );
+
+				$ext = 'png'; // Default extension.
+
+				$fname = Utils\get_temp_dir() . $unique_name . '.' . $ext;
+
+				file_put_contents( $fname, $content );
+
+				if ( file_is_valid_image( $fname ) ) {
+					$file_info = wp_check_filetype_and_ext( $fname, $unique_name . '.' . $ext );
+
+					$correct_ext = '';
+
+					if ( is_array( $file_info ) && isset( $file_info['ext'] ) && ! empty( $file_info['ext'] ) ) {
+						$correct_ext = $file_info['ext'];
+					}
+
+					if ( $ext === $correct_ext ) {
+						$file = $fname;
+					} else {
+						$new_file = Utils\get_temp_dir() . $unique_name . '.' . $correct_ext;
+						rename( $fname, $new_file );
+						$file = $new_file;
+					}
+				}
+			}
+
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- parse_url will only be used in absence of wp_parse_url.
 			$is_file_remote = function_exists( 'wp_parse_url' ) ? wp_parse_url( $file, PHP_URL_HOST ) : parse_url( $file, PHP_URL_HOST );
 			$orig_filename  = $file;
